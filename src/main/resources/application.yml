@@ -9,7 +9,7 @@ spring:
       password: password
 
   datasource:
-    url: jdbc:sqlite:./data/twitterlike.db
+    url: jdbc:sqlite:./.local/data/twitterlike.db
     driver-class-name: org.sqlite.JDBC
     username:
     password:

@@ -22,7 +22,7 @@ public class BatchConfig {
     public DataSource sqliteDataSource() {
         org.springframework.jdbc.datasource.DriverManagerDataSource ds =
                 new org.springframework.jdbc.datasource.DriverManagerDataSource();
-        ds.setUrl("jdbc:sqlite:./data/twitterlike.db");
+        ds.setUrl("jdbc:sqlite:./.local/data/twitterlike.db");
         ds.setDriverClassName("org.sqlite.JDBC");
         return ds;
     }
