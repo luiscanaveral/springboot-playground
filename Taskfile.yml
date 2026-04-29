@@ -1,0 +1,60 @@
+version: '3'
+
+vars:
+  GRADLE: ./gradlew
+
+tasks:
+  build:
+    desc: Build the project
+    cmds:
+      - '{{.GRADLE}} build -x test'
+
+  run:
+    desc: Run the Spring Boot application
+    cmds:
+      - mkdir -p data
+      - '{{.GRADLE}} bootRun'
+
+  docker:up:
+    desc: Start Docker containers (Neo4j)
+    cmds:
+      - docker-compose up -d
+
+  docker:down:
+    desc: Stop Docker containers
+    cmds:
+      - docker-compose down
+
+  feed:
+    desc: Run the batch feed job (1M users, 20 tweets each, 100 likes per tweet)
+    cmds:
+      - mkdir -p data
+      - '{{.GRADLE}} bootRun --args="--spring.batch.job.enabled=true" &'
+      - sleep 10
+      - curl -X POST "http://localhost:8080/api/batch/feed?userCount=1000000&tweetsPerUser=20&likesPerTweet=100"
+
+  feed:small:
+    desc: Run a small batch feed job for testing (100 users)
+    cmds:
+      - mkdir -p data
+      - '{{.GRADLE}} bootRun --args="--spring.batch.job.enabled=true" &'
+      - sleep 10
+      - curl -X POST "http://localhost:8080/api/batch/feed?userCount=100&tweetsPerUser=5&likesPerTweet=10"
+      - pkill -f "bootRun" || true
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - '{{.GRADLE}} clean'
+
+  test:
+    desc: Run tests
+    cmds:
+      - '{{.GRADLE}} test'
+
+  setup:
+    desc: Full setup - build, start docker, run app
+    cmds:
+      - task docker:up
+      - task build
+      - task run

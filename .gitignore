@@ -1,0 +1,65 @@
+# Gradle
+.gradle/
+build/
+*.gradle.kts
+gradle-app.setting
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# Eclipse
+.eclipse/
+.settings/
+.project
+.classpath
+bin/
+
+# VSCode
+.vscode/
+*.code-workspace
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Spring Boot
+data/
+*.db
+*.db-shm
+*.db-wal
+logs/
+*.log
+
+# Docker
+docker-compose.override.yml
+
+# Taskfile
+Taskfile.dist.yml
+
+# Java
+*.class
+*.jar
+*.war
+*.nar
+target/
+
+# Maven
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/
+
+# Neo4j
+neo4j_data/
+
+# OS
+Thumbs.db
