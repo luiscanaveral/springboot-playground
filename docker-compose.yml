@@ -32,6 +32,15 @@ services:
     volumes:
       - ./.local/sqlserver_data:/var/opt/mssql
 
+  redis:
+    image: redis:7.2-alpine
+    container_name: twitterlike-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./.local/redis_data:/data
+    command: redis-server --appendonly yes
+
 volumes:
   neo4j_data:
   sqlserver_data:

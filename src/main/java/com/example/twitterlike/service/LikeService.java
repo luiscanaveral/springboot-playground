@@ -6,6 +6,8 @@ import com.example.twitterlike.entity.User;
 import com.example.twitterlike.repository.LikeRepository;
 import com.example.twitterlike.repository.TweetRepository;
 import com.example.twitterlike.repository.UserRepository;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +27,7 @@ public class LikeService {
     }
 
     @Transactional
+    @CacheEvict(value = {"likes", "likeCounts"}, key = "#tweetId", allEntries = true)
     public Like likeTweet(Long userId, Long tweetId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -43,14 +46,17 @@ public class LikeService {
     }
 
     @Transactional
+    @CacheEvict(value = {"likes", "likeCounts"}, key = "#tweetId", allEntries = true)
     public void unlikeTweet(Long userId, Long tweetId) {
         likeRepository.deleteByUserIdAndTweetId(userId, tweetId);
     }
 
+    @Cacheable(value = "likes", key = "{#userId, #tweetId}")
     public Optional<Like> getLike(Long userId, Long tweetId) {
         return likeRepository.findByUserIdAndTweetId(userId, tweetId);
     }
 
+    @Cacheable(value = "likeCounts", key = "#tweetId")
     public long getLikeCount(Long tweetId) {
         return likeRepository.countByTweetId(tweetId);
     }

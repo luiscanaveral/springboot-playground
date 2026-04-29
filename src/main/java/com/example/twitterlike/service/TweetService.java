@@ -5,6 +5,9 @@ import com.example.twitterlike.entity.User;
 import com.example.twitterlike.neo4j.UserNodeRepository;
 import com.example.twitterlike.repository.TweetRepository;
 import com.example.twitterlike.repository.UserRepository;
+import com.example.twitterlike.service.Neo4jFriendshipService;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -19,14 +22,17 @@ public class TweetService {
     private final TweetRepository tweetRepository;
     private final UserRepository userRepository;
     private final UserNodeRepository userNodeRepository;
+    private final Neo4jFriendshipService neo4jFriendshipService;
 
-    public TweetService(TweetRepository tweetRepository, UserRepository userRepository, UserNodeRepository userNodeRepository) {
+    public TweetService(TweetRepository tweetRepository, UserRepository userRepository, UserNodeRepository userNodeRepository, Neo4jFriendshipService neo4jFriendshipService) {
         this.tweetRepository = tweetRepository;
         this.userRepository = userRepository;
         this.userNodeRepository = userNodeRepository;
+        this.neo4jFriendshipService = neo4jFriendshipService;
     }
 
     @Transactional
+    @CacheEvict(value = {"feedTweets"}, allEntries = true)
     public Tweet createTweet(Long userId, String content) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -46,6 +52,7 @@ public class TweetService {
     }
 
     @Transactional
+    @CacheEvict(value = {"tweets", "userTweets"}, key = "#tweetId")
     public Tweet updateTweet(Long tweetId, String content) {
         return tweetRepository.findById(tweetId)
                 .map(tweet -> {
@@ -56,22 +63,27 @@ public class TweetService {
     }
 
     @Transactional
+    @CacheEvict(value = {"tweets", "userTweets", "feedTweets"}, allEntries = true)
     public void deleteTweet(Long tweetId) {
         tweetRepository.deleteById(tweetId);
     }
 
+    @Cacheable(value = "tweets", key = "#id")
     public Optional<Tweet> getTweetById(Long id) {
         return tweetRepository.findById(id);
     }
 
+    @Cacheable(value = "userTweets", key = "#userId")
     public List<Tweet> getTweetsByUserId(Long userId) {
         return tweetRepository.findByUserId(userId);
     }
 
+    @Cacheable(value = "allTweets")
     public List<Tweet> getAllTweets() {
         return tweetRepository.findAll();
     }
 
+    @Cacheable(value = "feedTweets", key = "#userId")
     public List<Tweet> getFeedTweets(Long userId) {
         var followingIds = neo4jFriendshipService.getFollowingIds(userId);
         followingIds.add(userId);

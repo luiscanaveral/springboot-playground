@@ -13,24 +13,25 @@ Twitterlike implements core Twitter-like features:
 The application uses a polyglot persistence model:
 - **SQLite**: Stores relational data (users, tweets, likes, comments) via JPA/Hibernate
 - **Neo4j**: Manages graph relationships (user follow connections) for efficient traversal
+- **Redis**: Caches hot reads (tweets, users, likes, feeds) with 60-second TTL
 
 Built with Spring Boot 3.2.5, Java 21, and Gradle 8.7 (with wrapper included).
 
 ## Prerequisites
 
 - **Java 21 JDK** (required for Spring Boot 3.2.5)
-- **Docker** (for running the Neo4j graph database)
+- **Docker** (for running Neo4j and Redis)
 - (Optional) [Task runner](https://taskfile.dev) for simplified commands via Taskfile
 
 No local Gradle installation is required (uses included `./gradlew` wrapper).
 
 ## Running Locally
 
-### 1. Start Neo4j Database
+### 1. Start Databases
 ```bash
 docker-compose up -d
 ```
-Starts Neo4j 5.18-community on `bolt://localhost:7687` (credentials: `neo4j/password`).
+Starts Neo4j 5.18-community on `bolt://localhost:7687` (credentials: `neo4j/password`) and Redis on port 6379.
 
 ### 2. Create Data Directory
 ```bash
