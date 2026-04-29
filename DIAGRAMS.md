@@ -12,7 +12,7 @@
 flowchart TD
     Client -->|GET Request| Controller
     Controller --> Service
-    Service -->|@Cacheable| Redis
+    Service -->|"@Cacheable"| Redis
     Redis -->|Hit| Service
     Service --> Controller
     Controller -->|Response| Client
@@ -21,7 +21,7 @@ flowchart TD
     Service --> Neo4j
     SQLite --> Service
     Neo4j --> Service
-    Service -->|Store Result| Redis
+    Service -->|"Store Result"| Redis
     Service --> Controller
 ```
 
@@ -32,8 +32,8 @@ flowchart TD
     Controller --> Service
     Service -->|Update| SQLite
     Service -->|Update| Neo4j
-    Service -->|@CacheEvict| Redis
-    Redis -->|Invalidate Keys| Service
+    Service -->|"@CacheEvict"| Redis
+    Redis -->|"Invalidate Keys"| Service
     Service --> Controller
     Controller -->|Response| Client
 ```
