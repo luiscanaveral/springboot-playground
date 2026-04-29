@@ -1,6 +1,8 @@
 package com.example.twitterlike.service;
 
 import com.example.twitterlike.entity.User;
+import com.example.twitterlike.neo4j.UserNode;
+import com.example.twitterlike.neo4j.UserNodeRepository;
 import com.example.twitterlike.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,9 +14,11 @@ import java.util.Optional;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final UserNodeRepository userNodeRepository;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, UserNodeRepository userNodeRepository) {
         this.userRepository = userRepository;
+        this.userNodeRepository = userNodeRepository;
     }
 
     @Transactional
@@ -22,7 +26,9 @@ public class UserService {
         User user = new User();
         user.setUsername(username);
         user.setDisplayName(displayName);
-        return userRepository.save(user);
+        User saved = userRepository.save(user);
+        userNodeRepository.save(new UserNode(saved.getId(), saved.getUsername()));
+        return saved;
     }
 
     @Transactional

@@ -20,5 +20,18 @@ services:
       - ./data:/data
     command: tail -f /dev/null
 
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: twitterlike-sqlserver
+    ports:
+      - "1433:1433"
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=StrongP@ssw0rd!
+      - MSSQL_PID=Express
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+
 volumes:
   neo4j_data:
+  sqlserver_data:
