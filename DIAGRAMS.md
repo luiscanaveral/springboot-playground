@@ -1,68 +1,51 @@
-# Diagrams
+# DIAGRAMS.md - Data Flow & Database Architecture
 
-## Feed Flow Sequence Diagram
+## Components Overview
+| Component | Role | Connection |
+|-----------|------|------------|
+| **SQLite** | Relational data (users, tweets, likes, comments) | `./.local/data/twitterlike.db` (JDBC) |
+| **Neo4j** | Graph relationships (user follows) | `bolt://localhost:7687` (Spring Data Neo4j) |
+| **Redis** | Hot read cache (60s TTL) | `localhost:6379` (Spring Data Redis) |
 
-### Tweet Creation with Fan-out
-
+## Read Flow (Cached)
 ```mermaid
-sequenceDiagram
-    participant Client
-    participant Controller as TwitterController
-    participant TweetService
-    participant SQL as SQL Database (Tweets)
-    participant Neo4j as Neo4j (Followers)
-    participant Feed as Feed (Fan-out)
-
-    Client->>Controller: POST /api/tweets?userId=X&content=...
-    Controller->>TweetService: createTweet(userId, content)
-    TweetService->>SQL: Save Tweet (INSERT)
-    SQL-->>TweetService: Tweet saved (with ID)
-    TweetService->>Neo4j: findFollowerIdsByUserId(userId)
-    Neo4j-->>TweetService: Set of follower IDs
-    TweetService->>Feed: Fan-out tweet to each follower
-    Feed-->>TweetService: Fan-out complete
-    TweetService-->>Controller: Return saved Tweet
-    Controller-->>Client: 200 OK (Tweet)
+flowchart TD
+    Client -->|GET Request| Controller
+    Controller --> Service
+    Service -->|@Cacheable| Redis
+    Redis -->|Hit| Service
+    Service --> Controller
+    Controller -->|Response| Client
+    Redis -->|Miss| Service
+    Service --> SQLite
+    Service --> Neo4j
+    SQLite --> Service
+    Neo4j --> Service
+    Service -->|Store Result| Redis
+    Service --> Controller
 ```
 
-### Feed Retrieval
-
+## Write Flow (Cache Eviction)
 ```mermaid
-sequenceDiagram
-    participant Client
-    participant Controller as TwitterController
-    participant Neo4jService as Neo4jFriendshipService
-    participant Neo4j as Neo4j (Following)
-    participant TweetService
-    participant SQL as SQL Database (Tweets)
-
-    Client->>Controller: GET /api/users/{userId}/feed
-    Controller->>Neo4jService: getFollowingIds(userId)
-    Neo4jService->>Neo4j: Query FOLLOWS relationships
-    Neo4j-->>Neo4jService: Set of following IDs
-    Neo4jService-->>Controller: Return following IDs
-    Controller->>TweetService: getFeedTweets(userId)
-    TweetService->>SQL: SELECT * FROM tweets WHERE user_id IN (followingIds, userId) ORDER BY created_at DESC LIMIT 50
-    SQL-->>TweetService: List of Tweets
-    TweetService-->>Controller: Return Tweets
-    Controller-->>Client: 200 OK (List of Tweets)
+flowchart TD
+    Client -->|POST/PUT/DELETE| Controller
+    Controller --> Service
+    Service -->|Update| SQLite
+    Service -->|Update| Neo4j
+    Service -->|@CacheEvict| Redis
+    Redis -->|Invalidate Keys| Service
+    Service --> Controller
+    Controller -->|Response| Client
 ```
 
-### Follow/Unfollow Flow
+## Cache Details
+- **Cached Data**: Tweets, users, like counts, user feeds (see `application.yml` for full cache names)
+- **TTL**: 60 seconds (60000ms)
+- **Eviction**: Triggered on all write operations (create/update/delete) to maintain consistency
+- **Null Caching**: Disabled to avoid caching missing data
 
-```mermaid
-sequenceDiagram
-    participant Client
-    participant Controller as TwitterController
-    participant Neo4jService as Neo4jFriendshipService
-    participant Neo4j as Neo4j
-
-    Client->>Controller: POST /api/users/{userId}/follow?followeeId=Y
-    Controller->>Neo4jService: follow(userId, followeeId)
-    Neo4jService->>Neo4j: Find follower UserNode
-    Neo4jService->>Neo4j: Find followee UserNode
-    Neo4jService->>Neo4j: Add FOLLOWS relationship (follower->followee)
-    Neo4j-->>Neo4jService: Relationship created
-    Neo4jService-->>Controller: Void
-    Controller-->>Client: 200 OK
-```
+## Database Interaction Summary
+1. **Relational Data**: Users, tweets, likes, comments → SQLite via JPA
+2. **Graph Data**: User follow relationships → Neo4j via Spring Data Neo4j
+3. **Hot Reads**: Frequently accessed data → Redis (with fallback to DB on miss)
+4. **Feed Generation**: Uses Neo4j to fetch following IDs, then queries SQLite for tweets (result cached in Redis as `feedTweets`)
